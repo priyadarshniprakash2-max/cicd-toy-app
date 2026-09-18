@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Build') {
             steps {
                 echo 'Installing dependencies...'
@@ -18,7 +19,11 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deploying application...'
+                sshagent(['ec2-jenkins-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.45.83 "echo Jenkins connected to EC2 successfully"
+                    '''
+                }
             }
         }
     }
