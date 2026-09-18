@@ -1,17 +1,12 @@
 {
   "name": "cicd-toy-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "CI/CD toy application",
+  "main": "server.js",
   "scripts": {
-  "test": "node -e \"console.log('Tests passed successfully')\""
-}
+    "test": "node -e \"console.log('Tests passed successfully')\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.1.0"
   }
 }
