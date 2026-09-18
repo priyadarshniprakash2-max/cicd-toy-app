@@ -1,8 +1,11 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:20'
+        }
+    }
 
     stages {
-
         stage('Build') {
             steps {
                 echo 'Installing dependencies...'
@@ -19,8 +22,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deploying Toy App...'
-                echo 'Deployment stage completed.'
+                echo 'Deploying application...'
             }
         }
     }
@@ -29,7 +31,6 @@ pipeline {
         success {
             echo 'CI/CD Pipeline completed successfully!'
         }
-
         failure {
             echo 'CI/CD Pipeline failed.'
         }
