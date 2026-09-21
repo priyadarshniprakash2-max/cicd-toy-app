@@ -62,6 +62,39 @@ pipeline {
                 }
             }
         }
+
+        stage('Approve Prod Deployment') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                input message: 'Approve deployment to PROD?', ok: 'Deploy to PROD'
+            }
+        }
+
+        stage('Deploy PROD') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                echo 'Deploying to PROD environment...'
+
+                sshagent(['ec2-jenkins-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
+                            cd ~/cicd-toy-app &&
+                            git pull &&
+                            docker build -t cicd-toy-app:latest . &&
+                            docker stop toy-prod || true &&
+                            docker rm toy-prod || true &&
+                            docker run -d --name toy-prod --env-file env/prod.env -p 3003:3003 cicd-toy-app:latest
+                        "
+                    '''
+                }
+            }
+        }
     }
 
     post {
