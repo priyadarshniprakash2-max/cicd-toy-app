@@ -27,7 +27,7 @@ pipeline {
 
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.45.83 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
@@ -50,7 +50,7 @@ pipeline {
 
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.45.83 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
