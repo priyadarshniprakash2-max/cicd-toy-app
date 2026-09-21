@@ -16,7 +16,7 @@ app.get("/api/config", (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(9999, () => {
     console.log(`Toy App running on port ${PORT}`);
     console.log(`Environment: ${BANNER}`);
     console.log(`Database: ${DB_NAME}`);
