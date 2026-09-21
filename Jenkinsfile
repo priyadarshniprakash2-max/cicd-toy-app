@@ -17,17 +17,46 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy DEV') {
+            when {
+                branch 'integration'
+            }
+
             steps {
+                echo 'Deploying to DEV environment...'
+
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@3.110.45.83 "
                             cd ~/cicd-toy-app &&
                             git pull &&
-                            docker build -t cicd-toy-app . &&
-                            docker stop cicd-toy-app || true &&
-                            docker rm cicd-toy-app || true &&
-                            docker run -d --name cicd-toy-app -p 3000:3000 cicd-toy-app
+                            docker build -t cicd-toy-app:latest . &&
+                            docker stop toy-dev || true &&
+                            docker rm toy-dev || true &&
+                            docker run -d --name toy-dev --env-file env/dev.env -p 3001:3001 cicd-toy-app:latest
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy QA') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                echo 'Deploying to QA environment...'
+
+                sshagent(['ec2-jenkins-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.45.83 "
+                            cd ~/cicd-toy-app &&
+                            git pull &&
+                            docker build -t cicd-toy-app:latest . &&
+                            docker stop toy-qa || true &&
+                            docker rm toy-qa || true &&
+                            docker run -d --name toy-qa --env-file env/qa.env -p 3002:3002 cicd-toy-app:latest
                         "
                     '''
                 }
