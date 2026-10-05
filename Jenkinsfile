@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -17,17 +18,25 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                echo 'Scanning Docker image for CRITICAL vulnerabilities...'
+                sh '''
+                    docker build -t cicd-toy-app:scan .
+                    trivy image --severity CRITICAL --exit-code 1 cicd-toy-app:scan
+                '''
+            }
+        }
+
         stage('Deploy DEV') {
             when {
                 branch 'integration'
             }
-
             steps {
                 echo 'Deploying to DEV environment...'
-
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.136.153 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
@@ -44,13 +53,11 @@ pipeline {
             when {
                 branch 'main'
             }
-
             steps {
                 echo 'Deploying to QA environment...'
-
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.136.153 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
@@ -67,7 +74,6 @@ pipeline {
             when {
                 branch 'main'
             }
-
             steps {
                 input message: 'Approve deployment to PROD?', ok: 'Deploy to PROD'
             }
@@ -77,13 +83,11 @@ pipeline {
             when {
                 branch 'main'
             }
-
             steps {
                 echo 'Deploying to PROD environment...'
-
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.136.153 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
@@ -95,6 +99,7 @@ pipeline {
                 }
             }
         }
+
     }
 
     post {
@@ -107,3 +112,4 @@ pipeline {
         }
     }
 }
+```
