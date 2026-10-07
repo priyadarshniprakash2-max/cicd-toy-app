@@ -17,17 +17,25 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                echo 'Scanning Docker image for HIGH and CRITICAL vulnerabilities...'
+                sh '''
+                    docker build -t cicd-toy-app:scan .
+                    trivy image --severity HIGH,CRITICAL --exit-code 1 cicd-toy-app:scan
+                '''
+            }
+        }
+
         stage('Deploy DEV') {
             when {
                 branch 'integration'
             }
-
             steps {
                 echo 'Deploying to DEV environment...'
-
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.136.153 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
@@ -44,13 +52,11 @@ pipeline {
             when {
                 branch 'main'
             }
-
             steps {
                 echo 'Deploying to QA environment...'
-
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.200.215.48 "
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.136.153 "
                             cd ~/cicd-toy-app &&
                             git pull &&
                             docker build -t cicd-toy-app:latest . &&
@@ -62,6 +68,37 @@ pipeline {
                 }
             }
         }
+
+        stage('Approve Prod Deployment') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input message: 'Approve deployment to PROD?', ok: 'Deploy to PROD'
+            }
+        }
+
+        stage('Deploy PROD') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying to PROD environment...'
+                sshagent(['ec2-jenkins-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@3.110.136.153 "
+                            cd ~/cicd-toy-app &&
+                            git pull &&
+                            docker build -t cicd-toy-app:latest . &&
+                            docker stop toy-prod || true &&
+                            docker rm toy-prod || true &&
+                            docker run -d --name toy-prod --env-file env/prod.env -p 3003:3003 cicd-toy-app:latest
+                        "
+                    '''
+                }
+            }
+        }
+
     }
 
     post {
