@@ -1,15 +1,44 @@
+```dockerfile
+# Stage 1: Build the application
 FROM node:20-trixie-slim AS builder
+
 WORKDIR /app
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
+# Update operating system packages
+RUN apt-get update && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev && npm install --no-save tar@7.5.19 && npm cache clean --force
+RUN npm ci --omit=dev \
+    && npm install --no-save tar@7.5.19 \
+    && npm cache clean --force
+
+# Copy application source
 COPY . .
 
+# Stage 2: Create the hardened runtime image
 FROM node:20-trixie-slim
+
 WORKDIR /app
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* && groupadd --system appgroup && useradd --system --gid appgroup --home-dir /tmp appuser
+
+# Update OS packages, upgrade npm's bundled dependencies,
+# and create a dedicated non-root user
+RUN apt-get update && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g npm@11 \
+    && groupadd --system appgroup \
+    && useradd --system --gid appgroup --home-dir /tmp appuser
+
 ENV HOME=/tmp
+
+# Copy application files with restricted ownership
 COPY --from=builder --chown=appuser:appgroup /app /app
+
+# Run as a non-root user
 USER appuser
+
 EXPOSE 3001 3002 3003
+
 CMD ["node", "server.js"]
+```
