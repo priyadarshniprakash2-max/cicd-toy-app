@@ -1,4 +1,3 @@
-```groovy
 pipeline {
     agent any
 
@@ -25,20 +24,14 @@ pipeline {
 
         stage('Security Scan') {
             steps {
-                echo 'Building the hardened image and scanning for Critical vulnerabilities...'
+                echo 'Building and scanning the hardened Docker image...'
                 sh '''
                     set -eu
-
-                    # Set a dedicated temporary directory for Trivy.
                     export TMPDIR=/var/tmp/trivy-tmp
                     mkdir -p "$TMPDIR"
 
-                    # Build the hardened Docker image.
-                    docker build \
-                        -f Dockerfile.hardened \
-                        -t cicd-toy-app:scan .
+                    docker build -f Dockerfile.hardened -t cicd-toy-app:scan .
 
-                    # Fail if any Critical vulnerability is detected.
                     trivy image \
                         --scanners vuln \
                         --severity CRITICAL \
@@ -91,14 +84,11 @@ pipeline {
         success {
             echo 'Build, tests, and security scan completed successfully.'
         }
-
         failure {
             echo 'Pipeline failed. Review the stage logs for the cause.'
         }
-
         always {
             echo 'Pipeline execution finished.'
         }
     }
 }
-```
