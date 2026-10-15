@@ -4,31 +4,44 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Installing dependencies...'
-                sh 'npm install'
+                echo 'Installing application dependencies...'
+                sh '''
+                    set -eu
+                    npm install
+                '''
             }
         }
 
         stage('Test') {
             steps {
                 echo 'Running application tests...'
-                sh 'npm test'
+                sh '''
+                    set -eu
+                    npm test
+                '''
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Building application image and checking for CRITICAL vulnerabilities...'
+                echo 'Building the application image and scanning for Critical vulnerabilities...'
                 sh '''
                     set -eu
 
+                    # Use a dedicated temporary directory for Trivy.
+                    export TMPDIR=/var/tmp/trivy-tmp
+                    mkdir -p "$TMPDIR"
+
+                    # Build the current, intentionally vulnerable Dockerfile.
                     docker build -t cicd-toy-app:scan .
 
+                    # Fail this stage if any Critical vulnerability is detected.
                     trivy image \
                         --scanners vuln \
                         --severity CRITICAL \
                         --exit-code 1 \
                         --no-progress \
+                        --skip-version-check \
                         cicd-toy-app:scan
                 '''
             }
@@ -39,7 +52,7 @@ pipeline {
                 expression { false }
             }
             steps {
-                echo 'Deployment temporarily disabled for security testing.'
+                echo 'Deployment disabled during security testing.'
             }
         }
 
@@ -48,7 +61,7 @@ pipeline {
                 expression { false }
             }
             steps {
-                echo 'Deployment temporarily disabled for security testing.'
+                echo 'Deployment disabled during security testing.'
             }
         }
 
@@ -57,7 +70,7 @@ pipeline {
                 expression { false }
             }
             steps {
-                echo 'Production approval temporarily disabled for security testing.'
+                echo 'Production approval disabled during security testing.'
             }
         }
 
@@ -66,7 +79,7 @@ pipeline {
                 expression { false }
             }
             steps {
-                echo 'Deployment temporarily disabled for security testing.'
+                echo 'Deployment disabled during security testing.'
             }
         }
     }
@@ -77,7 +90,11 @@ pipeline {
         }
 
         failure {
-            echo 'Pipeline failed. Check the stage logs for the cause.'
+            echo 'Pipeline failed. Review the stage logs for the cause.'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
         }
     }
 }
