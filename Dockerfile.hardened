@@ -1,36 +1,17 @@
 # Stage 1: Build the application
 FROM node:20-trixie-slim AS builder
-
 WORKDIR /app
-
-RUN apt-get update && apt-get upgrade -y 
-    && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
-
-RUN npm ci --omit=dev 
-    && npm install --no-save tar@7.5.19 
-    && npm cache clean --force
-
+RUN npm ci --omit=dev && npm install --no-save tar@7.5.19 && npm cache clean --force
 COPY . .
 
 # Stage 2: Hardened runtime image
 FROM node:20-trixie-slim
-
 WORKDIR /app
-
-RUN apt-get update && apt-get upgrade -y 
-    && rm -rf /var/lib/apt/lists/* 
-    && npm install -g npm@11 
-    && groupadd --system appgroup 
-    && useradd --system --gid appgroup --home-dir /tmp appuser
-
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* && npm install -g npm@11 && groupadd --system appgroup && useradd --system --gid appgroup --home-dir /tmp appuser
 ENV HOME=/tmp
-
 COPY --from=builder --chown=appuser:appgroup /app /app
-
 USER appuser
-
 EXPOSE 3001 3002 3003
-
 CMD ["node", "server.js"]
