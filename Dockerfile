@@ -1,4 +1,8 @@
-FROM node:20
+```dockerfile
+FROM node:20-bookworm
+
+# Update npm to a release with the patched tar dependency
+RUN npm install -g npm@11.18.0
 
 WORKDIR /app
 
@@ -13,3 +17,4 @@ EXPOSE 3002
 EXPOSE 3003
 
 CMD ["node", "server.js"]
+```
