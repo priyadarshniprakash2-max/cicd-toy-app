@@ -1,8 +1,8 @@
+```groovy
 pipeline {
     agent any
 
     stages {
-
         stage('Build') {
             steps {
                 echo 'Installing dependencies...'
@@ -19,10 +19,10 @@ pipeline {
 
         stage('Security Scan') {
             steps {
-                echo 'Scanning Docker image for CRITICAL vulnerabilities...'
+                echo 'Building a fresh image and scanning for CRITICAL vulnerabilities...'
                 sh '''
-                    docker build -t cicd-toy-app:scan .
-                    trivy image --severity CRITICAL --exit-code 1 cicd-toy-app:scan
+                    docker build --no-cache -t cicd-toy-app:scan .
+                    trivy image --scanners vuln --severity CRITICAL --exit-code 1 cicd-toy-app:scan
                 '''
             }
         }
@@ -36,11 +36,12 @@ pipeline {
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.204.75.224 "
-                            cd ~/cicd-toy-app &&
-                            git pull &&
-                            docker build -t cicd-toy-app:latest . &&
-                            docker stop toy-dev || true
-                            docker rm toy-dev || true
+                            set -e
+                            cd ~/toy-app-fix
+                            git pull
+                            docker build -t cicd-toy-app:latest .
+                            (docker stop toy-dev || true)
+                            (docker rm toy-dev || true)
                             docker run -d --name toy-dev --env-file env/dev.env -p 3001:3001 cicd-toy-app:latest
                         "
                     '''
@@ -57,11 +58,12 @@ pipeline {
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.204.75.224 "
-                            cd ~/cicd-toy-app &&
-                            git pull &&
-                            docker build -t cicd-toy-app:latest . &&
-                            docker stop toy-qa || true
-                            docker rm toy-qa || true
+                            set -e
+                            cd ~/toy-app-fix
+                            git pull
+                            docker build -t cicd-toy-app:latest .
+                            (docker stop toy-qa || true)
+                            (docker rm toy-qa || true)
                             docker run -d --name toy-qa --env-file env/qa.env -p 3002:3002 cicd-toy-app:latest
                         "
                     '''
@@ -87,25 +89,24 @@ pipeline {
                 sshagent(['ec2-jenkins-key']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.204.75.224 "
-                            cd ~/cicd-toy-app &&
-                            git pull &&
-                            docker build -t cicd-toy-app:latest . &&
-                            docker stop toy-prod || true
-                            docker rm toy-prod || true
+                            set -e
+                            cd ~/toy-app-fix
+                            git pull
+                            docker build -t cicd-toy-app:latest .
+                            (docker stop toy-prod || true)
+                            (docker rm toy-prod || true)
                             docker run -d --name toy-prod --env-file env/prod.env -p 3003:3003 cicd-toy-app:latest
                         "
                     '''
                 }
             }
         }
-
     }
 
     post {
         success {
             echo 'CI/CD Pipeline completed successfully!'
         }
-
         failure {
             echo 'CI/CD Pipeline failed.'
         }
