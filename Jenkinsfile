@@ -1,4 +1,4 @@
-```groovy
+
 pipeline {
     agent any
 
@@ -77,4 +77,42 @@ pipeline {
 
         stage('Approve Prod Deployment') {
             when {
-                branch '
+                branch 'security-test'
+            }
+            steps {
+                input message: 'Approve deployment to PROD?', ok: 'Deploy to PROD'
+            }
+        }
+
+        stage('Deploy PROD') {
+            when {
+                branch 'security-test'
+            }
+            steps {
+                echo 'Deploying to PROD environment...'
+                sshagent(['ec2-jenkins-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.204.75.224 "
+                            set -e
+                            cd ~/toy-app-fix
+                            git pull
+                            docker build -t cicd-toy-app:latest .
+                            (docker stop toy-prod || true)
+                            (docker rm toy-prod || true)
+                            docker run -d --name toy-prod --env-file env/prod.env -p 3003:3003 cicd-toy-app:latest
+                        "
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI/CD Pipeline completed successfully!'
+        }
+        failure {
+            echo 'CI/CD Pipeline failed.'
+        }
+    }
+}
