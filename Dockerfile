@@ -1,31 +1,26 @@
-# Stage 1: install production dependencies
-FROM node:20-bookworm-slim AS dependencies
 
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm ci --omit=dev
-
-# Stage 2: production image
 FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Create a dedicated non-root user
-RUN groupadd --system appgroup && \
-    useradd --system --gid appgroup appuser
+# Update Debian packages to include available security fixes.
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy only what the application needs
-COPY --from=dependencies /app/node_modules ./node_modules
+# Update npm to the version tested for this project.
+RUN npm install -g npm@11.18.0
+
 COPY package*.json ./
-COPY server.js ./
-COPY public ./public
-COPY env ./env
 
-# Run as non-root user
-USER appuser
+RUN npm install
 
-EXPOSE 3001 3002 3003
+COPY . .
+
+EXPOSE 3001
+EXPOSE 3002
+EXPOSE 3003
 
 CMD ["node", "server.js"]
+
