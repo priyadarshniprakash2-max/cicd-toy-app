@@ -1,6 +1,10 @@
-
+```groovy
 pipeline {
     agent any
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+    }
 
     stages {
         stage('Build') {
@@ -22,7 +26,7 @@ pipeline {
                 echo 'Building a fresh image and scanning for CRITICAL vulnerabilities...'
                 sh '''
                     docker build --no-cache -t cicd-toy-app:scan .
-                    trivy image --scanners vuln --severity CRITICAL --exit-code 1 cicd-toy-app:scan
+                    trivy image --timeout 15m --scanners vuln --severity CRITICAL --exit-code 1 cicd-toy-app:scan
                 '''
             }
         }
@@ -73,42 +77,4 @@ pipeline {
 
         stage('Approve Prod Deployment') {
             when {
-                branch 'security-test'
-            }
-            steps {
-                input message: 'Approve deployment to PROD?', ok: 'Deploy to PROD'
-            }
-        }
-
-        stage('Deploy PROD') {
-            when {
-                branch 'security-test'
-            }
-            steps {
-                echo 'Deploying to PROD environment...'
-                sshagent(['ec2-jenkins-key']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.204.75.224 "
-                            set -e
-                            cd ~/toy-app-fix
-                            git pull
-                            docker build -t cicd-toy-app:latest .
-                            (docker stop toy-prod || true)
-                            (docker rm toy-prod || true)
-                            docker run -d --name toy-prod --env-file env/prod.env -p 3003:3003 cicd-toy-app:latest
-                        "
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'CI/CD Pipeline completed successfully!'
-        }
-        failure {
-            echo 'CI/CD Pipeline failed.'
-        }
-    }
-}
+                branch '
