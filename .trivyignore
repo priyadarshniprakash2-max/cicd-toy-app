@@ -1,0 +1,4 @@
+
+# Debian Bookworm security tracker: MiniZip is not built into Debian's zlib package.
+# Reference: https://security-tracker.debian.org/tracker/CVE-2023-45853
+CVE-2023-45853
