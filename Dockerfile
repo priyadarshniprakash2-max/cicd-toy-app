@@ -1,27 +1,22 @@
-
-FROM node:22-bookworm-slim
+# Stage 1: Install application dependencies
+FROM node:22-trixie-slim AS builder
 
 WORKDIR /app
 
-# Install OS security updates without manually upgrading
-# packages during the Docker build.
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Keep the npm version required by this project.
-RUN npm install -g npm@11.18.0
-
-# Install application dependencies.
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --omit=dev
 
-# Copy application source.
 COPY . .
 
-EXPOSE 3001
-EXPOSE 3002
-EXPOSE 3003
+# Stage 2: Minimal, non-root runtime
+FROM gcr.io/distroless/nodejs22-debian13:nonroot
 
-CMD ["node", "server.js"]
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder --chown=nonroot:nonroot /app /app
+
+EXPOSE 3001
+
+CMD ["server.js"]
