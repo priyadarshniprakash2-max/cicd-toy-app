@@ -1,20 +1,14 @@
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Refresh package metadata and upgrade installed OS packages.
-# Repair package metadata if needed before installing security updates.
+# Refresh package metadata without upgrading Debian packages in-place.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       ca-certificates \
-       dpkg \
-       apt \
-    && apt-get upgrade -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep the npm version used by this project.
+# Keep the project's npm version.
 RUN npm install -g npm@11.18.0
 
 COPY package*.json ./
