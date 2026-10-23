@@ -23,17 +23,34 @@ pipeline {
 
         stage('Security Scan') {
             steps {
-                echo 'Building a fresh image and scanning for CRITICAL vulnerabilities...'
+                echo 'Building a fresh image for the security scan...'
+
                 sh '''
+                    set -eu
+
                     docker build --no-cache -t cicd-toy-app:scan .
-                    trivy image --timeout 15m --scanners vuln --severity CRITICAL --exit-code 1 cicd-toy-app:scan
+
+                    echo "=== Full vulnerability report: all severities ==="
+                    trivy image \
+                        --timeout 15m \
+                        --scanners vuln \
+                        --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+                        cicd-toy-app:scan
+
+                    echo "=== Blocking security gate: HIGH and CRITICAL ==="
+                    trivy image \
+                        --timeout 15m \
+                        --scanners vuln \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        cicd-toy-app:scan
                 '''
             }
         }
 
         stage('Deploy DEV') {
             when {
-                branch 'security-test'
+                branch 'integration'
             }
             steps {
                 echo 'Deploying to DEV environment...'
@@ -55,7 +72,7 @@ pipeline {
 
         stage('Deploy QA') {
             when {
-                branch 'security-test'
+                branch 'main'
             }
             steps {
                 echo 'Deploying to QA environment...'
@@ -77,7 +94,7 @@ pipeline {
 
         stage('Approve Prod Deployment') {
             when {
-                branch 'security-test'
+                branch 'main'
             }
             steps {
                 input message: 'Approve deployment to PROD?', ok: 'Deploy to PROD'
@@ -86,7 +103,7 @@ pipeline {
 
         stage('Deploy PROD') {
             when {
-                branch 'security-test'
+                branch 'main'
             }
             steps {
                 echo 'Deploying to PROD environment...'
