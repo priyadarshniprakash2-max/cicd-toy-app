@@ -3,13 +3,13 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Install available updates for existing packages without a full distribution upgrade.
+# Install no OS upgrades during the build.
+# Pulling the latest available base image is handled by docker build --pull.
 RUN apt-get update \
-    && apt-get upgrade -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Use the npm version tested for this project.
+# Keep the npm version required by this project.
 RUN npm install -g npm@11.18.0
 
 COPY package*.json ./
@@ -23,4 +23,3 @@ EXPOSE 3002
 EXPOSE 3003
 
 CMD ["node", "server.js"]
-
